@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <img src="media/ghostwheel-logo-lg.png" alt="Ghostwheel Logo" width="100" />
+</p>
+
+<p align="center">
   <strong>Raw AI agent power, running locally on your hardware.</strong>
 </p>
 
@@ -19,6 +23,16 @@
 Ghostwheel is a Windows desktop application that integrates a local developer agent with on-device LLM inference. Built on the **Merlin Framework**, it packages a thin Tauri runtime controlling a pinned native `llama-server` sidecar. By running prompt context, file edits, and terminal executions entirely inside your local hardware boundary, Ghostwheel eliminates API token billing, network lag, and prompt telemetry.
 
 *Note: This repository is the public release tracker, documentation home, and community hub for Ghostwheel. The core runtime engine is proprietary and closed-source.*
+
+---
+
+## Application Preview
+
+Below is a mockup of the local developer agent interface executing code-generation and diagnostics logging locally:
+
+<p align="center">
+  <img src="media/hero.png" alt="Ghostwheel Desktop Application Interface" width="100%" />
+</p>
 
 ---
 
