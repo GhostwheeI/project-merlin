@@ -1,7 +1,7 @@
 # Ghostwheel
 
 <p align="center">
-  <img src="media/ghostwheel_banner.png" alt="Ghostwheel Banner" width="100%" />
+  <img src="media/ghostwheel_app.png" alt="Ghostwheel Application User Interface" width="100%" />
 </p>
 
 <p align="center">
