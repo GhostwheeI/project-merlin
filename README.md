@@ -1,12 +1,8 @@
-<p align="center"><strong>Ghostwheel</strong> is a coding agent that runs locally on your computer with unlimited usage.
+<p align="center"><strong>Ghostwheel</strong> is a coding agent that runs locally on your Windows computer with unlimited usage.
 <p align="center">
 
 <p align="center">
   <img src="media/ghostwheel_app.png" alt="Ghostwheel Application User Interface" width="100%" />
-</p>
-
-<p align="center">
-  <img src="media/ghostwheel-logo-lg.png" alt="Ghostwheel Logo" width="100" />
 </p>
 
 <p align="center">
