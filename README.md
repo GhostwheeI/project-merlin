@@ -22,6 +22,19 @@ Ghostwheel is a Windows desktop application that integrates a local developer ag
 
 ---
 
+## System Requirements
+
+To run Ghostwheel's local inference engine (`llama-server`) with active hardware acceleration, your machine must meet the following specifications:
+
+| Hardware Component | **Minimum Requirement** | **Recommended Specification** |
+| :--- | :--- | :--- |
+| **Processor (CPU)** | Intel Core i5 / AMD Ryzen 5 | Intel Core i7 / AMD Ryzen 7 (or newer) |
+| **System Memory (RAM)** | 16 GB DDR3 or faster | 32 GB DDR4 / DDR5 |
+| **Dedicated Graphics (GPU)** | 4 GB VRAM (NVIDIA CUDA or Vulkan) | 8 GB+ Dedicated VRAM (NVIDIA RTX) |
+| **Storage Space** | 8 GB free space (SSD recommended) | 16 GB free space (NVMe SSD) |
+
+---
+
 ## Why Ghostwheel?
 
 Cloud-based developer agents are powerful, but they expose your proprietary code to third-party servers, require complex API token subscriptions, and fail completely when offline. Ghostwheel provides a local-first alternative without sacrificing capability.
