@@ -2,11 +2,9 @@
 
 ## Reporting a Vulnerability
 
-We take the security and safety of local-first code execution very seriously. If you find a security vulnerability or abuse case inside Ghostwheel or the Merlin Framework, please do not file a public GitHub issue. 
+We take the security and safety of local-first code execution very seriously. If you discover a security vulnerability or execution safety bypass inside Ghostwheel or the Merlin Framework, please do not file a public GitHub issue.
 
-Instead, report it securely by:
-1. Sending an email detailing the vulnerability to **security@ghostwheel.ai** (or filing a private ticket at the Support Desk).
-2. If applicable, encrypting your report using the PGP key associated with our release signing.
+Instead, please submit a detailed report using the Support Form on the application website under the **Security** category (routed at `#support`), which transmits submissions securely via Formspree.
 
 ## Process and Disclosure
 

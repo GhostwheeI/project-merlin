@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-  <a href="https://ghostwheel.ai/#download"><img src="https://img.shields.io/badge/Release-Pre--Alpha-purple?style=for-the-badge" alt="Pre-Alpha Release" /></a>
-  <a href="https://github.com/GhostwheeI/project-merlin/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" /></a>
+  <a href="#download"><img src="https://img.shields.io/badge/Release-Pre--Alpha-purple?style=for-the-badge" alt="Pre-Alpha Release" /></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" /></a>
   <img src="https://img.shields.io/badge/Platform-Windows-0078d4?style=for-the-badge" alt="Platform: Windows" />
 </p>
 
@@ -74,8 +74,8 @@ graph TD
     style Proxy fill:#ef4444,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
-* **Orchestration**: A lightweight Tauri/Rust shell manages the sidecar process lifecycle, SQLite database persistence, and local OS credential storage.
-* **Inference**: Pinned prebuilt `llama-server` instances load the quantized model weights. The UI communicates with the model over a standard, loopback-bound OpenAI-compatible HTTP API.
+* **Orchestration**: A lightweight Tauri/Rust shell manages the sidecar process lifecycle, SQLite database persistence (`merlin.db`), and local OS credential storage (Keyring).
+* **Inference**: Pinned prebuilt `llama-server` instances load the quantized model weights (`Merlin-9B-Coder-Q5_K_M.gguf`). The UI communicates with the model over a standard, loopback-bound OpenAI-compatible HTTP API.
 * **Licensing**: Brokered through a stateless license proxy server connected to **Lemon Squeezy** (Merchant of Record). All subscription checks occur without transmitting code or conversation telemetry.
 
 ---
@@ -103,27 +103,36 @@ $ ready_
 
 Ghostwheel is distributed as a signed MSI installer for Windows 10 and 11.
 
-1. **Download**: Fetch the installer matching your hardware profile from our [Download Center](https://ghostwheel.ai/#releases) (CUDA, Vulkan, or CPU-only).
+1. **Download**: Fetch the installer matching your hardware profile from our website's **Download Center** (routed at `#releases`).
 2. **Verify Checksum**: Always verify the installer's integrity by comparing the SHA-256 hash in PowerShell:
    ```powershell
    Get-FileHash .\Ghostwheel-Installer-CUDA.msi -Algorithm SHA256
    ```
 3. **Run**: Run the installer and input your waitlist license key on first boot.
 
-For advanced configuration (VRAM allocation, context scaling, custom model manifests), visit our [Documentation Portal](https://ghostwheel.ai/#docs).
+For advanced configuration (VRAM allocation, context scaling, custom model manifests), visit our website's **Docs** section (routed at `#docs`).
+
+---
+
+## Project Status: Pre-Alpha
+
+Ghostwheel is currently in a private pre-alpha phase, with active builds compiling on our local loop.
+
+* To lock in your spot and receive early-access release keys, join the waitlist at our website's **Waitlist Form** (routed at `#download`).
+* If you want to speed up the compiler and back Rydell's development, you can **Buy Rydell a Coffee** via the link on our homepage or backer page (routed at `#backer`).
 
 ---
 
 ## Why Closed Source?
 
-While Ghostwheel is built on top of incredible open-source libraries (such as `llama.cpp` and `Tauri`), the core orchestration layers, safety guards, and commercial integrations are proprietary. 
+While Ghostwheel is built on top of open-source libraries (such as `llama.cpp` and `Tauri`), the core orchestration layers, safety guards, and commercial integrations are proprietary.
 
 This model allows us to:
 1. Guarantee rigorous verification bounds on local command-execution safety before wide release.
 2. Fund full-time development and active compiler maintenance.
 3. Ensure absolute compliance with licensing and distribution policies.
 
-We are fully committed to open-source compliance; all third-party notices and licenses are documented in our [Third-Party Disclosures](https://ghostwheel.ai/#licenses).
+We are fully committed to open-source compliance; all third-party notices and licenses are documented on the website's **Third-Party Notices** page (routed at `#licenses`).
 
 ---
 
@@ -131,4 +140,4 @@ We are fully committed to open-source compliance; all third-party notices and li
 
 * **Bug Reports & Feature Requests**: Please use our [Issue Tracker](https://github.com/GhostwheeI/project-merlin/issues) to report bugs or suggest enhancements.
 * **Security Disclosures**: Found a vulnerability? Please refer to our [Security Policy](SECURITY.md) for secure reporting channels.
-* **General Support**: File a support ticket at our [Help Desk](https://ghostwheel.ai/#support).
+* **General Support**: File a support ticket at our website's **Support Ticket Form** (routed at `#support`).
