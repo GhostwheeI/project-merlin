@@ -1,43 +1,102 @@
 # Ghostwheel
 
-> **Local-first, privacy-preserving AI developer agent running on your hardware.**
+<p align="center">
+  <img src="media/ghostwheel_banner.png" alt="Ghostwheel Banner" width="100%" />
+</p>
 
-Ghostwheel is a Windows desktop application that integrates a developer agent with on-device LLM inference. Built on the **Merlin Framework**, it runs completely inside your local boundary to eliminate API token billing, network lag, and prompt telemetry.
+<p align="center">
+  <strong>Raw AI agent power, running locally on your hardware.</strong>
+</p>
+
+<p align="center">
+  <a href="https://ghostwheel.ai/#download"><img src="https://img.shields.io/badge/Release-Pre--Alpha-purple?style=for-the-badge" alt="Pre-Alpha Release" /></a>
+  <a href="https://github.com/GhostwheeI/project-merlin/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/Platform-Windows-0078d4?style=for-the-badge" alt="Platform: Windows" />
+</p>
+
+---
+
+Ghostwheel is a Windows desktop application that integrates a local developer agent with on-device LLM inference. Built on the **Merlin Framework**, it packages a thin Tauri runtime controlling a pinned native `llama-server` sidecar. By running prompt context, file edits, and terminal executions entirely inside your local hardware boundary, Ghostwheel eliminates API token billing, network lag, and prompt telemetry.
 
 *Note: This repository is the public release tracker, documentation home, and community hub for Ghostwheel. The core runtime engine is proprietary and closed-source.*
 
 ---
 
-## Key Features
+## Why Ghostwheel?
 
-* **Zero-Telemetry Local Inference**: Powered by a pinned `llama-server` sidecar. Your prompts, code, and chat history stay on your local disk.
-* **Hardware Acceleration**: Automatic GPU detection and acceleration using **NVIDIA CUDA** and **Vulkan**, with seamless fallback to CPU execution.
-* **Safe-by-Design Tooling**: Execution sandboxing with user confirmation gates for destructive terminal commands, alongside SSRF-restricted network tools.
-* **Offline Capability**: Features a local licensing cache that allows you to operate completely offline for up to 14 days before needing a re-verification check.
+Cloud-based developer agents are powerful, but they expose your proprietary code to third-party servers, require complex API token subscriptions, and fail completely when offline. Ghostwheel provides a local-first alternative without sacrificing capability.
+
+### Comparison Matrix
+
+| Feature | **Ghostwheel (Local)** | **Cloud Agents (SaaS)** | **Raw CLI Wrappers** |
+| :--- | :--- | :--- | :--- |
+| **Data Privacy** | 🔒 **100% Local** (No telemetry) | ⚠️ Cloud uploads / telemetry | 🔒 Local |
+| **Inference Cost** | 💰 **Free / Unlimited** (Your hardware) | 💸 Per-token billing | 💸 API subscription keys |
+| **Offline Capability** | ✈️ **Yes** (14-day grace token) | ❌ Requires internet | ❌ Requires internet |
+| **Hardware Acceleration** | ⚡ **CUDA & Vulkan** auto-selection | ❌ Runs in cloud VM | ⚠️ Manual setup required |
+| **Sandboxed Tooling** | 🛡️ **SSRF & Command Confirmations** | ⚠️ Full container access | ❌ Runs naked on host |
+
+---
+
+## Technical Architecture
+
+Ghostwheel is designed from the ground up to keep the runtime boundary highly secure, resource-efficient, and easy to swap.
+
+```mermaid
+graph TD
+    User([Developer User]) <-->|Local WebView UI| Tauri[Tauri Desktop Shell]
+    Tauri <-->|Local OpenAI HTTP API| Sidecar[llama-server Sidecar]
+    Tauri -->|Read/Write serialized queue| SQLite[(Local SQLite Database)]
+    Tauri -->|Store key/token| Keyring[Windows Keyring]
+    Sidecar <-->|Inference / GGUF loading| HW[Local Hardware CUDA/Vulkan/CPU]
+    Tauri -->|Activate/Validate instance label| Proxy[Licensing Proxy Server]
+    Proxy <-->|Merchant of Record API| LS[Lemon Squeezy Store]
+    
+    style User fill:#a855f7,stroke:#fff,stroke-width:2px,color:#fff
+    style Tauri fill:#3b82f6,stroke:#fff,stroke-width:2px,color:#fff
+    style Sidecar fill:#10b981,stroke:#fff,stroke-width:2px,color:#fff
+    style SQLite fill:#1f2937,stroke:#fff,stroke-width:2px,color:#fff
+    style Keyring fill:#1f2937,stroke:#fff,stroke-width:2px,color:#fff
+    style Proxy fill:#ef4444,stroke:#fff,stroke-width:2px,color:#fff
+```
+
+* **Orchestration**: A lightweight Tauri/Rust shell manages the sidecar process lifecycle, SQLite database persistence, and local OS credential storage.
+* **Inference**: Pinned prebuilt `llama-server` instances load the quantized model weights. The UI communicates with the model over a standard, loopback-bound OpenAI-compatible HTTP API.
+* **Licensing**: Brokered through a stateless license proxy server connected to **Lemon Squeezy** (Merchant of Record). All subscription checks occur without transmitting code or conversation telemetry.
+
+---
+
+## Boot Diagnostics Log
+
+On startup, Ghostwheel executes a full diagnostic checks sequence to verify dependencies and hardware allocation:
+
+```bash
+$ ghostwheel boot
+[ok]   webview2 runtime: 121.0.x
+[ok]   llama-server: b9729 (cuda-13.3-x64)
+[ok]   model: Merlin-9B-Coder-Q5_K_M.gguf
+       sha256: 7e3c…verified
+[ok]   sqlite: %LOCALAPPDATA%\ProjectMerlin\merlin.db
+[ok]   license: active · grace 14d
+[ok]   network egress: 0 bytes
+
+$ ready_
+```
 
 ---
 
 ## Installation & Getting Started
 
-Ghostwheel is distributed as a signed MSI installer for Windows 10 and 11. 
+Ghostwheel is distributed as a signed MSI installer for Windows 10 and 11.
 
-1. **Download**: Grab the latest signed installer for your hardware profile from our [Download Center](https://ghostwheel.ai/#releases) (CUDA, Vulkan, or CPU-only).
-2. **Verify Checksum**: Always verify the installer's integrity by comparing the SHA-256 hash:
+1. **Download**: Fetch the installer matching your hardware profile from our [Download Center](https://ghostwheel.ai/#releases) (CUDA, Vulkan, or CPU-only).
+2. **Verify Checksum**: Always verify the installer's integrity by comparing the SHA-256 hash in PowerShell:
    ```powershell
    Get-FileHash .\Ghostwheel-Installer-CUDA.msi -Algorithm SHA256
    ```
 3. **Run**: Run the installer and input your waitlist license key on first boot.
 
 For advanced configuration (VRAM allocation, context scaling, custom model manifests), visit our [Documentation Portal](https://ghostwheel.ai/#docs).
-
----
-
-## Project Status: Pre-Alpha
-
-Ghostwheel is currently in a private pre-alpha phase, with active builds compiling on our local loop. 
-
-* To lock in your spot and receive early-access release keys, join the waitlist at [Ghostwheel.ai](https://ghostwheel.ai/#download).
-* If you want to speed up the compiler and back Rydell's late-night build sessions, you can [Buy Rydell a Coffee](https://buymeacoffee.com/rydell).
 
 ---
 
