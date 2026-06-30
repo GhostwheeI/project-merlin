@@ -26,16 +26,6 @@ Ghostwheel is a Windows desktop application that integrates a local developer ag
 
 ---
 
-## Application Preview
-
-Below is a mockup of the local developer agent interface executing code-generation and diagnostics logging locally:
-
-<p align="center">
-  <img src="media/hero.png" alt="Ghostwheel Desktop Application Interface" width="100%" />
-</p>
-
----
-
 ## Why Ghostwheel?
 
 Cloud-based developer agents are powerful, but they expose your proprietary code to third-party servers, require complex API token subscriptions, and fail completely when offline. Ghostwheel provides a local-first alternative without sacrificing capability.
@@ -49,34 +39,6 @@ Cloud-based developer agents are powerful, but they expose your proprietary code
 | **Offline Capability** | ✈️ **Yes** (14-day grace token) | ❌ Requires internet | ❌ Requires internet |
 | **Hardware Acceleration** | ⚡ **CUDA & Vulkan** auto-selection | ❌ Runs in cloud VM | ⚠️ Manual setup required |
 | **Sandboxed Tooling** | 🛡️ **SSRF & Command Confirmations** | ⚠️ Full container access | ❌ Runs naked on host |
-
----
-
-## Technical Architecture
-
-Ghostwheel is designed from the ground up to keep the runtime boundary highly secure, resource-efficient, and easy to swap.
-
-```mermaid
-graph TD
-    User([Developer User]) <-->|Local WebView UI| Tauri[Tauri Desktop Shell]
-    Tauri <-->|Local OpenAI HTTP API| Sidecar[llama-server Sidecar]
-    Tauri -->|Read/Write serialized queue| SQLite[(Local SQLite Database)]
-    Tauri -->|Store key/token| Keyring[Windows Keyring]
-    Sidecar <-->|Inference / GGUF loading| HW[Local Hardware CUDA/Vulkan/CPU]
-    Tauri -->|Activate/Validate instance label| Proxy[Licensing Proxy Server]
-    Proxy <-->|Merchant of Record API| LS[Lemon Squeezy Store]
-    
-    style User fill:#a855f7,stroke:#fff,stroke-width:2px,color:#fff
-    style Tauri fill:#3b82f6,stroke:#fff,stroke-width:2px,color:#fff
-    style Sidecar fill:#10b981,stroke:#fff,stroke-width:2px,color:#fff
-    style SQLite fill:#1f2937,stroke:#fff,stroke-width:2px,color:#fff
-    style Keyring fill:#1f2937,stroke:#fff,stroke-width:2px,color:#fff
-    style Proxy fill:#ef4444,stroke:#fff,stroke-width:2px,color:#fff
-```
-
-* **Orchestration**: A lightweight Tauri/Rust shell manages the sidecar process lifecycle, SQLite database persistence (`merlin.db`), and local OS credential storage (Keyring).
-* **Inference**: Pinned prebuilt `llama-server` instances load the quantized model weights (`Merlin-9B-Coder-Q5_K_M.gguf`). The UI communicates with the model over a standard, loopback-bound OpenAI-compatible HTTP API.
-* **Licensing**: Brokered through a stateless license proxy server connected to **Lemon Squeezy** (Merchant of Record). All subscription checks occur without transmitting code or conversation telemetry.
 
 ---
 
