@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="#download"><img src="https://img.shields.io/badge/Release-Pre--Alpha-purple?style=for-the-badge" alt="Pre-Alpha Release" /></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" /></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="Proprietary License" /></a>
   <img src="https://img.shields.io/badge/Platform-Windows-0078d4?style=for-the-badge" alt="Platform: Windows" />
 </p>
 
