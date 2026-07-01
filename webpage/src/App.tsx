@@ -660,10 +660,10 @@ function Footer() {
   return (
     <footer className="border-t border-border/60 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <img src={logoSmall} alt="Ghostwheel" className="h-6 w-6" />
           <span className="font-display text-sm font-semibold">Ghostwheel</span>
-          <span className="text-xs text-muted-foreground">© {new Date().getFullYear()}</span>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">© {new Date().getFullYear()}</span>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground">
           <a href="#features" className="hover:text-foreground">Features</a>
