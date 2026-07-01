@@ -843,28 +843,31 @@ function Credits() {
         </div>
 
         {/* Project Card in Credits */}
-        <div className="mt-12 surface-card p-8 border border-border bg-surface relative overflow-hidden flex flex-col sm:flex-row items-center gap-6">
-          <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-spectrum opacity-20 blur-2xl"></div>
-          <div className="relative h-24 w-24 mb-2 sm:mb-0 shrink-0 mx-auto sm:mx-0">
-            <div className="absolute inset-0 animate-pulse-glow rounded-full bg-spectrum blur-xl opacity-30"></div>
+        <div className="mt-16 mb-16 text-center">
+          <div className="relative mx-auto h-32 w-32 mb-8">
+            <div className="absolute inset-0 animate-pulse-glow rounded-full bg-spectrum blur-2xl opacity-40"></div>
             <img
               src={logoLarge}
               alt="Ghostwheel logo"
-              className="relative h-24 w-24 object-contain drop-shadow-[0_10px_30px_rgba(180,80,255,0.2)]"
+              className="relative h-32 w-32 object-contain drop-shadow-[0_10px_30px_rgba(180,80,255,0.2)]"
             />
           </div>
-          <div className="space-y-3 text-center sm:text-left">
-            <div>
-              <h2 className="font-display text-2xl font-bold tracking-tight">Ghostwheel</h2>
-              <p className="font-mono text-xs uppercase tracking-wider text-spectrum">// Built in Merlin Laboratories</p>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Ghostwheel is designed to bring native AI agent capability directly to Windows hardware. You can join the waitlist to get early builds and follow the release.
-            </p>
-            <p className="text-xs text-muted-foreground/80">
-              <a href="#download" className="text-foreground underline hover:text-primary transition-colors font-medium">Join waitlist</a>.
-            </p>
-          </div>
+
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-spectrum">// THE PROJECT</p>
+          <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+            Ghostwheel
+          </h2>
+          <p className="text-sm font-medium text-spectrum-4 mt-1">Framework built in Merlin Laboratories</p>
+
+          <p className="mx-auto mt-8 max-w-xl text-balance text-base text-muted-foreground leading-relaxed">
+            Ghostwheel is being built to bring local AI agent power directly to Windows hardware, and you can{' '}
+            <a
+              href="#download"
+              className="text-spectrum hover:underline font-medium"
+            >
+              join the waitlist to follow the release
+            </a>.
+          </p>
         </div>
 
         <div className="mt-16 grid gap-8 sm:grid-cols-2">
