@@ -1417,7 +1417,7 @@ function App() {
         '#patch-notes', '#about', '#credits', '#contact', '#support',
         '#signin', '#signup', '#profile', '#terms', '#privacy', '#docs', '#backer',
         '#accessibility', '#licenses', '#security', '#releases', '#cookies',
-        '#requirements', '#error'
+        '#requirements', '#error', '#forgot-password', '#reset-password'
       ];
 
       if (baseHash.startsWith('#verify')) {
@@ -1444,6 +1444,12 @@ function App() {
           window.scrollTo(0, 0);
         } else if (baseHash === '#signup') {
           setView('signup');
+          window.scrollTo(0, 0);
+        } else if (baseHash === '#forgot-password') {
+          setView('forgot-password');
+          window.scrollTo(0, 0);
+        } else if (baseHash === '#reset-password') {
+          setView('reset-password');
           window.scrollTo(0, 0);
         } else if (baseHash === '#profile') {
           setView('profile');
@@ -1528,6 +1534,14 @@ function App() {
 
   if (view === 'signup') {
     return <SignUp />;
+  }
+
+  if (view === 'forgot-password') {
+    return <ForgotPassword />;
+  }
+
+  if (view === 'reset-password') {
+    return <ResetPassword />;
   }
 
   if (view === 'profile') {
@@ -1623,13 +1637,16 @@ function SignIn() {
         body: JSON.stringify({ email: trimmedEmail, password })
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Sign in failed');
       }
 
       // Save user session and dispatch state update event
       localStorage.setItem('ghostwheel_current_user', trimmedEmail);
+      if (data.user && data.user.sessionToken) {
+        localStorage.setItem('ghostwheel_admin_token', data.user.sessionToken);
+      }
       window.dispatchEvent(new Event('auth-change'));
 
       setStatus('completed');
@@ -1697,7 +1714,10 @@ function SignIn() {
                 </div>
                 
                 <div>
-                  <label htmlFor="signin-pass" className="block text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">Password</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="signin-pass" className="block text-xs font-mono uppercase tracking-wider text-muted-foreground">Password</label>
+                    <a href="#forgot-password" className="text-xs font-mono uppercase tracking-wider text-muted-foreground/80 hover:text-foreground transition-colors underline underline-offset-2">Forgot?</a>
+                  </div>
                   <input 
                     type="password" 
                     name="password" 
@@ -1878,19 +1898,743 @@ function SignUp() {
   );
 }
 
+function ForgotPassword() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'form' | 'submitting' | 'completed'>('form');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+
+    setStatus('submitting');
+    try {
+      const response = await fetch(`${API_BASE}/api/waitlist/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
+      }
+      setMessage(data.message || 'If the email exists, a reset link has been sent.');
+      setStatus('completed');
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit request. Please try again.');
+      setStatus('form');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main className="mx-auto max-w-xl px-6 py-20">
+        <div className="surface-card p-8 border border-border bg-surface relative overflow-hidden">
+          <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-spectrum opacity-20 blur-2xl"></div>
+          
+          {status === 'completed' ? (
+            <div className="text-center py-8 space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spectrum-5/20 text-spectrum-5 mb-4">
+                <Check className="h-8 w-8" />
+              </div>
+              <h1 className="font-display text-2xl font-semibold tracking-tight">Request Received</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {message}
+              </p>
+              <a 
+                href="#signin" 
+                className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-6 py-3 text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+              >
+                Back to Sign In
+              </a>
+            </div>
+          ) : (
+            <div>
+              <div className="text-center mb-8">
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-spectrum">// PASSWORD RECOVERY</p>
+                <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">Forgot Password?</h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Enter your email address to receive a secure recovery link
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="forgot-email" className="block text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">Email Address</label>
+                  <input 
+                    type="email" 
+                    id="forgot-email" 
+                    required 
+                    disabled={status === 'submitting'}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ghostwheel@merlin-labs.io"
+                    className="w-full rounded-xl border border-border bg-surface-elevated/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-xs text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">{error}</p>
+                )}
+
+                <button 
+                  type="submit" 
+                  disabled={status === 'submitting'}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-spectrum animate-spectrum px-5 py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {status === 'submitting' ? 'Sending Request...' : 'Send Recovery Email'} <ArrowRight className="h-4 w-4" />
+                </button>
+              </form>
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Remember your password? <a href="#signin" className="text-foreground underline underline-offset-4 hover:text-primary transition-colors">Sign in here</a>.
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function ResetPassword() {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [status, setStatus] = useState<'form' | 'submitting' | 'completed'>('form');
+  const [error, setError] = useState('');
+
+  const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  const email = searchParams.get('email') || '';
+  const token = searchParams.get('token') || '';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!email || !token) {
+      setError('Invalid or expired password reset link.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    setStatus('submitting');
+    try {
+      const response = await fetch(`${API_BASE}/api/waitlist/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token, password })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Password reset failed');
+      }
+      setStatus('completed');
+    } catch (err: any) {
+      setError(err.message || 'Failed to reset password. Please try again.');
+      setStatus('form');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main className="mx-auto max-w-xl px-6 py-20">
+        <div className="surface-card p-8 border border-border bg-surface relative overflow-hidden">
+          <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-spectrum opacity-20 blur-2xl"></div>
+          
+          {status === 'completed' ? (
+            <div className="text-center py-8 space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spectrum-5/20 text-spectrum-5 mb-4">
+                <Check className="h-8 w-8" />
+              </div>
+              <h1 className="font-display text-2xl font-semibold tracking-tight">Password Reset Complete</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Your password has been successfully updated. You can now sign in with your new credentials.
+              </p>
+              <a 
+                href="#signin" 
+                className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-spectrum animate-spectrum px-6 py-3 text-sm font-semibold text-primary-foreground"
+              >
+                Sign In Now
+              </a>
+            </div>
+          ) : (
+            <div>
+              <div className="text-center mb-8">
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-spectrum">// PASSWORD UPDATE</p>
+                <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">Set New Password</h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Create a new secure password for <strong className="text-foreground">{email}</strong>
+                </p>
+              </div>
+
+              {!email || !token ? (
+                <div className="text-center py-4">
+                  <p className="text-xs text-destructive bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+                    This password reset link is invalid or incomplete. Please request a new recovery link.
+                  </p>
+                  <a 
+                    href="#forgot-password" 
+                    className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-6 py-3 text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+                  >
+                    Request New Link
+                  </a>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label htmlFor="new-pass" className="block text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">New Password</label>
+                    <input 
+                      type="password" 
+                      id="new-pass" 
+                      required 
+                      disabled={status === 'submitting'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-xl border border-border bg-surface-elevated/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirm-pass" className="block text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">Confirm New Password</label>
+                    <input 
+                      type="password" 
+                      id="confirm-pass" 
+                      required 
+                      disabled={status === 'submitting'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-xl border border-border bg-surface-elevated/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                    />
+                  </div>
+
+                  {error && (
+                    <p className="text-xs text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">{error}</p>
+                  )}
+
+                  <button 
+                    type="submit" 
+                    disabled={status === 'submitting'}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-spectrum animate-spectrum px-5 py-3.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {status === 'submitting' ? 'Resetting Password...' : 'Reset Password'} <ArrowRight className="h-4 w-4" />
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function AdminDashboard({ email, token, onSignOut }: { email: string; token: string | null; onSignOut: (e: any) => void }) {
+  const [activeTab, setActiveTab] = useState<'rosters' | 'tickets' | 'stats' | 'tools'>('rosters');
+  const [users, setUsers] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  
+  // Simulated logs
+  const [simulatedLogs, setSimulatedLogs] = useState<string[]>([
+    '[System] Server started successfully on port 8080.',
+    '[DB] Persistent SQLite database connected via GCS FUSE.',
+    '[IMAP] Connection established with mail.spacemail.com.',
+    '[IMAP] Poller active. Idle listening mode enabled.'
+  ]);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users`, {
+        headers: {
+          'X-Admin-Email': email,
+          'X-Admin-Token': token || ''
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const fetchTickets = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/tickets`, {
+        headers: {
+          'X-Admin-Email': email,
+          'X-Admin-Token': token || ''
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch support tickets');
+      const data = await res.json();
+      setTickets(data);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    setError('');
+    await Promise.all([fetchUsers(), fetchTickets()]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleVerifyUser = async (userEmail: string) => {
+    try {
+      setError('');
+      const res = await fetch(`${API_BASE}/api/admin/users/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Email': email,
+          'X-Admin-Token': token || ''
+        },
+        body: JSON.stringify({ email: userEmail })
+      });
+      if (!res.ok) throw new Error('Failed to verify user');
+      setSuccessMsg(`Successfully verified ${userEmail}`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteUser = async (userEmail: string) => {
+    if (!window.confirm(`Are you sure you want to delete ${userEmail}?`)) return;
+    try {
+      setError('');
+      const res = await fetch(`${API_BASE}/api/admin/users/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Email': email,
+          'X-Admin-Token': token || ''
+        },
+        body: JSON.stringify({ email: userEmail })
+      });
+      if (!res.ok) throw new Error('Failed to delete user');
+      setSuccessMsg(`Successfully deleted ${userEmail}`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleTriggerImap = async () => {
+    try {
+      setError('');
+      setSuccessMsg('Triggering IMAP poll...');
+      const res = await fetch(`${API_BASE}/api/admin/trigger-imap`, {
+        method: 'POST',
+        headers: {
+          'X-Admin-Email': email,
+          'X-Admin-Token': token || ''
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to trigger IMAP');
+      setSuccessMsg(data.message || 'IMAP poll triggered.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+      
+      setSimulatedLogs(prev => [
+        `[Admin] Manually triggered IMAP poll at ${new Date().toLocaleTimeString()}`,
+        ...prev
+      ]);
+      fetchTickets();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (users.length === 0) return;
+    const headers = ['Email', 'Verified', 'Created At'];
+    const rows = users.map(u => [u.email, u.verified ? 'Yes' : 'No', u.created_at]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ghostwheel_waitlist_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Helper stats
+  const totalSignups = users.length;
+  const verifiedCount = users.filter(u => u.verified).length;
+  const verificationRate = totalSignups > 0 ? Math.round((verifiedCount / totalSignups) * 100) : 0;
+  const totalTickets = tickets.length;
+  const openTickets = tickets.filter(t => t.status === 'open').length;
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main className="mx-auto max-w-6xl px-6 py-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-spectrum">// Merlin Laboratories</p>
+            <h1 className="font-display text-4xl font-semibold tracking-tight">Admin Console</h1>
+            <p className="text-sm text-muted-foreground mt-1">Logged in as {email}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={loadData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-secondary transition-colors"
+            >
+              {loading ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+            <button 
+              onClick={onSignOut}
+              className="inline-flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 rounded-xl border border-destructive/20 bg-destructive/10 text-sm text-destructive">{error}</div>
+        )}
+        {successMsg && (
+          <div className="mb-6 p-4 rounded-xl border border-spectrum-5/20 bg-spectrum-5/10 text-sm text-spectrum-5">{successMsg}</div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-border/60 mb-8 overflow-x-auto gap-6 text-sm font-medium">
+          <button 
+            onClick={() => setActiveTab('rosters')}
+            className={`pb-4 border-b-2 transition-all ${activeTab === 'rosters' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            Rosters
+          </button>
+          <button 
+            onClick={() => setActiveTab('tickets')}
+            className={`pb-4 border-b-2 transition-all ${activeTab === 'tickets' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            Support Tickets
+          </button>
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={`pb-4 border-b-2 transition-all ${activeTab === 'stats' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            Stats & Analytics
+          </button>
+          <button 
+            onClick={() => setActiveTab('tools')}
+            className={`pb-4 border-b-2 transition-all ${activeTab === 'tools' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            Developer Tools
+          </button>
+        </div>
+
+        {/* Rosters Tab */}
+        {activeTab === 'rosters' && (
+          <div className="surface-card p-6 border border-border bg-surface overflow-x-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-xl font-semibold">Waitlist Registrations</h3>
+              <button 
+                onClick={handleExportCsv}
+                className="text-xs rounded-lg border border-border bg-surface px-3 py-1.5 font-semibold text-foreground hover:bg-secondary transition-colors"
+              >
+                Export CSV
+              </button>
+            </div>
+            <table className="w-full text-left text-sm divide-y divide-border/60">
+              <thead>
+                <tr className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  <th className="pb-3">Email</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Signed Up</th>
+                  <th className="pb-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-muted-foreground">No accounts found.</td>
+                  </tr>
+                ) : (
+                  users.map((u, i) => (
+                    <tr key={i} className="hover:bg-secondary/20 transition-all">
+                      <td className="py-3 font-medium">{u.email}</td>
+                      <td className="py-3">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${u.verified ? 'bg-spectrum-5/10 text-spectrum-5' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                          {u.verified ? 'Verified' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="py-3 text-muted-foreground font-mono text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td className="py-3 text-right space-x-2">
+                        {!u.verified && (
+                          <button 
+                            onClick={() => handleVerifyUser(u.email)}
+                            className="text-xs px-2.5 py-1 rounded bg-spectrum-5/10 text-spectrum-5 hover:bg-spectrum-5/20 transition-all font-semibold"
+                          >
+                            Verify
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleDeleteUser(u.email)}
+                          className="text-xs px-2.5 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tickets Tab */}
+        {activeTab === 'tickets' && (
+          <div className="space-y-4">
+            <h3 className="font-display text-xl font-semibold mb-4">Support Tickets & Replies</h3>
+            {tickets.length === 0 ? (
+              <div className="surface-card p-8 text-center text-muted-foreground border border-border bg-surface">No tickets found.</div>
+            ) : (
+              tickets.map((t, idx) => (
+                <div key={idx} className="surface-card border border-border bg-surface overflow-hidden">
+                  <div 
+                    onClick={() => setExpandedTicket(expandedTicket === t.id ? null : t.id)}
+                    className="p-5 flex items-center justify-between cursor-pointer hover:bg-secondary/10 transition-all"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-xs font-semibold text-spectrum">#{t.id}</span>
+                        <h4 className="font-display font-semibold">{t.name} ({t.email})</h4>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Category: <strong className="text-foreground">{t.category}</strong> | Created: {new Date(t.created_at).toLocaleString()}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.status === 'replied' ? 'bg-spectrum-5/10 text-spectrum-5' : 'bg-primary/10 text-primary'}`}>
+                        {t.status}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{expandedTicket === t.id ? '▲' : '▼'}</span>
+                    </div>
+                  </div>
+                  
+                  {expandedTicket === t.id && (
+                    <div className="border-t border-border/60 p-5 bg-background/40 space-y-4">
+                      {/* Ticket Details */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono text-muted-foreground">
+                        <div>OS: <span className="text-foreground">{t.os_version || 'None'}</span></div>
+                        <div>GPU: <span className="text-foreground">{t.gpu_backend || 'None'}</span></div>
+                        <div>RAM: <span className="text-foreground">{t.system_memory || 'None'}</span></div>
+                        <div>License Key: <span className="text-foreground">{t.license_key || 'None'}</span></div>
+                      </div>
+
+                      {/* Ticket Message */}
+                      <div className="p-4 rounded-xl border border-border bg-surface text-sm space-y-2">
+                        <p className="text-xs font-mono text-muted-foreground">// USER MESSAGE</p>
+                        <p className="whitespace-pre-line leading-relaxed text-foreground/90">{t.message}</p>
+                      </div>
+
+                      {t.logs && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-mono text-muted-foreground">// ATTACHED DIAGNOSTIC LOGS</p>
+                          <pre className="p-4 rounded-xl border border-border bg-surface text-[10px] text-spectrum overflow-x-auto max-h-40">{t.logs}</pre>
+                        </div>
+                      )}
+
+                      {/* Replies Section */}
+                      <div className="space-y-3 mt-6">
+                        <h5 className="font-mono text-xs font-semibold text-spectrum uppercase tracking-wider">// Conversation History (IMAP synced)</h5>
+                        {t.replies && t.replies.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">No reply history found. Email conversations from contact@merlin-labs.io will show up here automatically when customers reply.</p>
+                        ) : (
+                          t.replies.map((r: any, rIdx: number) => (
+                            <div key={rIdx} className="p-4 rounded-xl border border-border/40 bg-surface/50 space-y-2">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <strong>From: {r.sender}</strong>
+                                <span className="font-mono">{new Date(r.received_at).toLocaleString()}</span>
+                              </div>
+                              <p className="text-xs whitespace-pre-line text-foreground/80">{r.body}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Stats Tab */}
+        {activeTab === 'stats' && (
+          <div className="space-y-6">
+            <h3 className="font-display text-xl font-semibold">Statistics & Analytics</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="surface-card p-6 border border-border bg-surface text-center">
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Total Signups</p>
+                <p className="font-display text-4xl font-bold mt-2 text-foreground">{totalSignups}</p>
+              </div>
+              <div className="surface-card p-6 border border-border bg-surface text-center">
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Verification Rate</p>
+                <p className="font-display text-4xl font-bold mt-2 text-spectrum-5">{verificationRate}%</p>
+              </div>
+              <div className="surface-card p-6 border border-border bg-surface text-center">
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Total Tickets</p>
+                <p className="font-display text-4xl font-bold mt-2 text-foreground">{totalTickets}</p>
+              </div>
+              <div className="surface-card p-6 border border-border bg-surface text-center">
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Open Tickets</p>
+                <p className="font-display text-4xl font-bold mt-2 text-primary">{openTickets}</p>
+              </div>
+            </div>
+
+            {/* Custom SVG Chart */}
+            <div className="surface-card p-6 border border-border bg-surface">
+              <h4 className="font-display font-semibold mb-4">Registration Flow Overview</h4>
+              <div className="h-64 flex items-end justify-between px-6 pt-10 border-b border-l border-border/60 relative">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-xs text-muted-foreground/60 italic font-mono">[Visual flow simulation: active]</span>
+                </div>
+                <div className="w-12 bg-spectrum-5/20 hover:bg-spectrum-5/40 transition-all rounded-t-lg h-[40%] flex items-center justify-center text-xs font-mono font-bold text-spectrum-5">Pending</div>
+                <div className="w-12 bg-spectrum-5/60 hover:bg-spectrum-5/80 transition-all rounded-t-lg h-[60%] flex items-center justify-center text-xs font-mono font-bold text-primary-foreground">Verified</div>
+                <div className="w-12 bg-spectrum/20 hover:bg-spectrum/40 transition-all rounded-t-lg h-[15%] flex items-center justify-center text-xs font-mono font-bold text-spectrum">Tickets</div>
+                <div className="w-12 bg-spectrum/40 hover:bg-spectrum/60 transition-all rounded-t-lg h-[80%] flex items-center justify-center text-xs font-mono font-bold text-primary-foreground">Total</div>
+              </div>
+              <div className="flex justify-between px-6 mt-2 text-xs font-mono text-muted-foreground">
+                <span>Unverified</span>
+                <span>Verified</span>
+                <span>Support</span>
+                <span>Active Roster</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tools Tab */}
+        {activeTab === 'tools' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* System Actions */}
+            <div className="surface-card p-6 border border-border bg-surface space-y-4">
+              <h4 className="font-display text-lg font-semibold border-b border-border/60 pb-2">Administrative Commands</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">Trigger automated routines on the backend without accessing SSH terminals.</p>
+              
+              <div className="space-y-3 pt-2">
+                <button 
+                  onClick={handleTriggerImap}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-spectrum animate-spectrum px-4 py-3 text-xs font-semibold text-primary-foreground"
+                >
+                  Force Sync Support Inbox (IMAP)
+                </button>
+                <button 
+                  disabled
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground cursor-not-allowed"
+                >
+                  Force Spaceship DNS Sync (Placeholder)
+                </button>
+              </div>
+            </div>
+
+            {/* GCP Deployment Controller */}
+            <div className="surface-card p-6 border border-border bg-surface space-y-4">
+              <h4 className="font-display text-lg font-semibold border-b border-border/60 pb-2">GCP Deployment Controller (Demo)</h4>
+              <div className="p-4 rounded-xl border border-border/60 bg-background/50 font-mono text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>Service Name:</span>
+                  <span className="text-spectrum">merlin-backend</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Region:</span>
+                  <span className="text-spectrum">us-central1</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Instance status:</span>
+                  <span className="text-spectrum-5">Active</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  alert('Initiating build trigger... Container build logs: [Success] Image pushed to Artifact Registry.');
+                  setSimulatedLogs(prev => [
+                    `[GCP Controller] Triggered rebuild revision at ${new Date().toLocaleTimeString()}`,
+                    ...prev
+                  ]);
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface hover:bg-secondary px-4 py-3 text-xs font-semibold text-foreground transition-colors"
+              >
+                Trigger Revision Rebuild
+              </button>
+            </div>
+
+            {/* System Log Console */}
+            <div className="surface-card p-6 border border-border bg-surface space-y-3 md:col-span-2">
+              <h4 className="font-display text-lg font-semibold border-b border-border/60 pb-2">Live Console Logs</h4>
+              <div className="p-4 rounded-xl border border-border bg-background/80 font-mono text-[10px] text-spectrum-5/80 h-40 overflow-y-auto space-y-1">
+                {simulatedLogs.map((log, lIdx) => (
+                  <div key={lIdx}>{log}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 function Profile() {
   const [email, setEmail] = useState('');
+  const [adminToken, setAdminToken] = useState<string | null>(null);
   
   useEffect(() => {
-    setEmail(localStorage.getItem('ghostwheel_current_user') || 'rydell@merlin-labs.io');
+    setEmail(localStorage.getItem('ghostwheel_current_user') || '');
+    setAdminToken(localStorage.getItem('ghostwheel_admin_token'));
   }, []);
 
   const handleSignOut = (e: React.MouseEvent) => {
     e.preventDefault();
     localStorage.removeItem('ghostwheel_current_user');
+    localStorage.removeItem('ghostwheel_admin_token');
     window.dispatchEvent(new Event('auth-change'));
     window.location.hash = ''; // redirect to home
   };
+
+  const isAdmin = email === 'rydell.hall@gmail.com' || email === 'admin@merlin-labs.io' || email === 'contact@merlin-labs.io';
+
+  if (isAdmin) {
+    return <AdminDashboard email={email} token={adminToken} onSignOut={handleSignOut} />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

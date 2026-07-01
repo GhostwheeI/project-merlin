@@ -9,6 +9,7 @@ import { simpleParser } from 'mailparser';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +49,17 @@ async function initDb() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Ensure tables have new columns for password reset and admin sessions
+  try {
+    await db.exec(`ALTER TABLE waitlist ADD COLUMN reset_token TEXT`);
+  } catch (err) { /* ignore if already exists */ }
+  try {
+    await db.exec(`ALTER TABLE waitlist ADD COLUMN reset_token_expires INTEGER`);
+  } catch (err) { /* ignore if already exists */ }
+  try {
+    await db.exec(`ALTER TABLE waitlist ADD COLUMN session_token TEXT`);
+  } catch (err) { /* ignore if already exists */ }
 
   // Create support_tickets table
   await db.exec(`
@@ -354,6 +366,8 @@ async function startImapListener() {
     }
   }
 
+  global.triggerImapPoll = pollEmails;
+
   // Poll immediately and then every 60 seconds
   pollEmails();
   setInterval(pollEmails, 60 * 1000);
@@ -456,16 +470,230 @@ app.post('/api/waitlist/signin', async (req, res) => {
       return res.status(403).json({ error: 'Please verify your email address first.' });
     }
 
+    // Generate session token
+    const sessionToken = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    await db.run('UPDATE waitlist SET session_token = ? WHERE email = ?', [sessionToken, trimmedEmail]);
+
     console.log(`[API] User successfully signed in: ${trimmedEmail}`);
     res.status(200).json({
       status: 'success',
       user: {
         email: record.email,
-        verified: record.verified === 1
+        verified: record.verified === 1,
+        sessionToken: sessionToken
       }
     });
   } catch (err) {
     console.error('[API] Sign In error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Helper to send password reset email
+async function sendPasswordResetEmail(toEmail, token) {
+  const resetLink = `https://${process.env.DOMAIN || 'merlin-labs.io'}/#reset-password?email=${encodeURIComponent(toEmail)}&token=${token}`;
+  const htmlContent = `
+    <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e4e4e7; border-radius: 8px;">
+      <h2 style="color: #a855f7;">Reset your Ghostwheel password</h2>
+      <p>We received a request to reset your password for your Ghostwheel account. Click the button below to choose a new password. This link is valid for 1 hour.</p>
+      <p style="margin: 24px 0;"><a href="${resetLink}" style="padding: 12px 24px; background: #a855f7; color: white; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Reset Password</a></p>
+      <p style="color: #71717a; font-size: 12px;">If you did not request a password reset, please ignore this email.</p>
+      <hr style="border: 0; border-top: 1px solid #e4e4e7; margin: 20px 0;" />
+      <p style="color: #71717a; font-size: 12px; word-break: break-all;">Or paste this link into your browser: <br>${resetLink}</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Ghostwheel" <${process.env.SMTP_USER}>`,
+    to: toEmail,
+    subject: 'Reset your Ghostwheel password',
+    html: htmlContent
+  });
+  console.log(`[Email] Sent password reset email to: ${toEmail}`);
+}
+
+// Forgot Password Route
+app.post('/api/waitlist/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+  const trimmedEmail = email.trim().toLowerCase();
+
+  try {
+    const record = await db.get('SELECT * FROM waitlist WHERE email = ?', [trimmedEmail]);
+    if (!record) {
+      // Return 200 to prevent user enumeration attacks
+      return res.status(200).json({ status: 'success', message: 'If the email exists, a reset link has been sent.' });
+    }
+
+    const token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    const expires = Date.now() + 3600 * 1000; // 1 hour
+
+    await db.run(
+      'UPDATE waitlist SET reset_token = ?, reset_token_expires = ? WHERE email = ?',
+      [token, expires, trimmedEmail]
+    );
+
+    await sendPasswordResetEmail(trimmedEmail, token);
+    res.status(200).json({ status: 'success', message: 'Password reset email sent.' });
+  } catch (err) {
+    console.error('[API] Forgot Password error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Reset Password Route
+app.post('/api/waitlist/reset-password', async (req, res) => {
+  const { email, token, password } = req.body;
+  if (!email || !token || !password) {
+    return res.status(400).json({ error: 'Email, token, and password are required.' });
+  }
+  const trimmedEmail = email.trim().toLowerCase();
+
+  try {
+    const record = await db.get(
+      'SELECT * FROM waitlist WHERE email = ? AND reset_token = ?',
+      [trimmedEmail, token]
+    );
+
+    if (!record) {
+      return res.status(400).json({ error: 'Invalid email address or reset token.' });
+    }
+
+    if (Date.now() > record.reset_token_expires) {
+      return res.status(400).json({ error: 'Reset token has expired.' });
+    }
+
+    // Update password and clear reset token
+    await db.run(
+      'UPDATE waitlist SET password = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?',
+      [password, trimmedEmail]
+    );
+
+    console.log(`[API] Password reset successfully for: ${trimmedEmail}`);
+    res.status(200).json({ status: 'success' });
+  } catch (err) {
+    console.error('[API] Reset Password error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Admin auth middleware
+async function requireAdmin(req, res, next) {
+  const adminEmail = req.headers['x-admin-email'];
+  const adminToken = req.headers['x-admin-token'];
+
+  if (!adminEmail || !adminToken) {
+    return res.status(401).json({ error: 'Unauthorized: Missing admin credentials.' });
+  }
+
+  const trimmedEmail = adminEmail.trim().toLowerCase();
+  if (trimmedEmail !== 'rydell.hall@gmail.com' && trimmedEmail !== 'admin@merlin-labs.io' && trimmedEmail !== 'contact@merlin-labs.io') {
+    return res.status(403).json({ error: 'Forbidden: Access denied.' });
+  }
+
+  try {
+    const record = await db.get('SELECT * FROM waitlist WHERE email = ? AND session_token = ?', [trimmedEmail, adminToken]);
+    if (!record) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid admin session.' });
+    }
+    next();
+  } catch (err) {
+    console.error('[Admin Auth] Error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+}
+
+// Admin: List Users Route
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.all('SELECT email, verified, created_at FROM waitlist ORDER BY created_at DESC');
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('[API Admin] List Users error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Admin: Verify User Route
+app.post('/api/admin/users/verify', requireAdmin, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+  const trimmedEmail = email.trim().toLowerCase();
+
+  try {
+    const record = await db.get('SELECT * FROM waitlist WHERE email = ?', [trimmedEmail]);
+    if (!record) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    await db.run('UPDATE waitlist SET verified = 1 WHERE email = ?', [trimmedEmail]);
+    console.log(`[Admin] Manually verified user: ${trimmedEmail}`);
+    res.status(200).json({ status: 'success' });
+  } catch (err) {
+    console.error('[API Admin] Verify User error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Admin: Delete User Route
+app.post('/api/admin/users/delete', requireAdmin, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+  const trimmedEmail = email.trim().toLowerCase();
+
+  try {
+    const record = await db.get('SELECT * FROM waitlist WHERE email = ?', [trimmedEmail]);
+    if (!record) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    await db.run('DELETE FROM waitlist WHERE email = ?', [trimmedEmail]);
+    console.log(`[Admin] Manually deleted user: ${trimmedEmail}`);
+    res.status(200).json({ status: 'success' });
+  } catch (err) {
+    console.error('[API Admin] Delete User error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Admin: Get Tickets & Replies Route
+app.get('/api/admin/tickets', requireAdmin, async (req, res) => {
+  try {
+    const tickets = await db.all('SELECT * FROM support_tickets ORDER BY created_at DESC');
+    const replies = await db.all('SELECT * FROM support_ticket_replies ORDER BY received_at DESC');
+    
+    const ticketMap = tickets.map(ticket => {
+      return {
+        ...ticket,
+        replies: replies.filter(reply => reply.ticket_id === ticket.id)
+      };
+    });
+
+    res.status(200).json(ticketMap);
+  } catch (err) {
+    console.error('[API Admin] Get Tickets error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Admin: Trigger IMAP Poll Route
+app.post('/api/admin/trigger-imap', requireAdmin, async (req, res) => {
+  try {
+    console.log('[Admin] Manually triggering IMAP poll...');
+    if (global.triggerImapPoll) {
+      await global.triggerImapPoll();
+      res.status(200).json({ status: 'success', message: 'IMAP poll completed.' });
+    } else {
+      res.status(200).json({ status: 'success', message: 'IMAP listener not initialized, check credentials.' });
+    }
+  } catch (err) {
+    console.error('[API Admin] Trigger IMAP error:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });
