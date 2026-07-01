@@ -35,10 +35,12 @@ function Header() {
         <div className="flex items-center gap-2.5">
           <a href="#top" className="flex items-center gap-2.5">
             <img src={logoSmall} alt="Ghostwheel" className="h-8 w-8" />
-            <span className="font-display text-lg font-semibold tracking-tight leading-none hover:text-foreground/80 transition-colors">Ghostwheel</span>
           </a>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
+              <a href="#top" className="font-display text-lg font-semibold tracking-tight leading-none hover:text-foreground/80 transition-colors">
+                Ghostwheel
+              </a>
               <a 
                 href="#patch-notes" 
                 className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:inline-block leading-none hover:border-primary/50 hover:text-foreground transition-colors"
@@ -46,7 +48,7 @@ function Header() {
                 Pre-alpha
               </a>
             </div>
-            <span className="text-[9px] pl-1.5 mt-1 leading-none font-normal tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.33)' }}>Built on the Merlin Framework</span>
+            <span className="text-[9px] pl-0.5 mt-1 leading-none font-normal tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.33)' }}>Built on the Merlin Framework</span>
           </div>
         </div>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
