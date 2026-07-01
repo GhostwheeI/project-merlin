@@ -2364,7 +2364,7 @@ function AdminDashboard({ email, token, onSignOut }: { email: string; token: str
         {activeTab === 'rosters' && (
           <div className="surface-card p-6 border border-border bg-surface overflow-x-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl font-semibold">Waitlist Registrations</h3>
+              <h3 className="font-display text-xl font-semibold">Registered Accounts</h3>
               <button 
                 onClick={handleExportCsv}
                 className="text-xs rounded-lg border border-border bg-surface px-3 py-1.5 font-semibold text-foreground hover:bg-secondary transition-colors"
@@ -2390,9 +2390,12 @@ function AdminDashboard({ email, token, onSignOut }: { email: string; token: str
                   users.map((u, i) => (
                     <tr key={i} className="hover:bg-secondary/20 transition-all">
                       <td className="py-3 font-medium">{u.email}</td>
-                      <td className="py-3">
+                      <td className="py-3 flex items-center gap-2 flex-wrap">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${u.verified ? 'bg-spectrum-5/10 text-spectrum-5' : 'bg-yellow-500/10 text-yellow-500'}`}>
                           {u.verified ? 'Verified' : 'Pending'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-surface-elevated text-muted-foreground border border-border/40">
+                          Waiting List
                         </span>
                       </td>
                       <td className="py-3 text-muted-foreground font-mono text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
