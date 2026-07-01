@@ -19,7 +19,7 @@ import {
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3000'
-  : 'https://api.merlin-labs.io';
+  : 'https://merlin-backend-719155976229.us-central1.run.app';
 
 function Header() {
   const [user, setUser] = useState<string | null>(() => localStorage.getItem('ghostwheel_current_user'));
