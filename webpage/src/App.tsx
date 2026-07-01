@@ -1449,6 +1449,27 @@ function App() {
   const [view, setView] = useState('home');
 
   useEffect(() => {
+    // Unique Visitor Analytics Tracking
+    const trackVisitor = async () => {
+      try {
+        let visitorId = localStorage.getItem('ghostwheel_visitor_id');
+        if (!visitorId) {
+          visitorId = crypto.randomUUID();
+          localStorage.setItem('ghostwheel_visitor_id', visitorId);
+        }
+        await fetch(`${API_BASE}/api/analytics/visit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visitor_id: visitorId })
+        }).catch(() => {});
+      } catch (err) {
+        // Silently fail for analytics tracking
+      }
+    };
+    trackVisitor();
+  }, []);
+
+  useEffect(() => {
     const handleHash = () => {
       const currentHash = window.location.hash;
       const baseHash = currentHash.split('?')[0];
@@ -2194,6 +2215,7 @@ function AdminDashboard({ email, token, onSignOut }: { email: string; token: str
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  const [uniqueVisitors, setUniqueVisitors] = useState<number | null>(null);
   
   // Simulated logs
   const [simulatedLogs, setSimulatedLogs] = useState<string[]>([
@@ -2235,10 +2257,26 @@ function AdminDashboard({ email, token, onSignOut }: { email: string; token: str
     }
   };
 
+  const fetchVisitors = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/stats/visitors`, {
+        headers: {
+          'X-Admin-Email': email,
+          'X-Admin-Token': token || ''
+        }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setUniqueVisitors(data.uniqueVisitors);
+    } catch (err) {
+      // Ignore visitor fetch errors
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     setError('');
-    await Promise.all([fetchUsers(), fetchTickets()]);
+    await Promise.all([fetchUsers(), fetchTickets(), fetchVisitors()]);
     setLoading(false);
   };
 
@@ -2544,7 +2582,11 @@ function AdminDashboard({ email, token, onSignOut }: { email: string; token: str
         {activeTab === 'stats' && (
           <div className="space-y-6">
             <h3 className="font-display text-xl font-semibold">Statistics & Analytics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+              <div className="surface-card p-6 border border-border bg-surface text-center">
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Unique Visitors</p>
+                <p className="font-display text-4xl font-bold mt-2 text-spectrum">{uniqueVisitors !== null ? uniqueVisitors : '-'}</p>
+              </div>
               <div className="surface-card p-6 border border-border bg-surface text-center">
                 <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Total Signups</p>
                 <p className="font-display text-4xl font-bold mt-2 text-foreground">{totalSignups}</p>

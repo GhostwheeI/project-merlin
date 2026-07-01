@@ -92,6 +92,17 @@ async function initDb() {
     )
   `);
 
+  // Create analytics unique_visitors table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS unique_visitors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      visitor_id TEXT UNIQUE NOT NULL,
+      first_visit DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_visit DATETIME DEFAULT CURRENT_TIMESTAMP,
+      visit_count INTEGER DEFAULT 1
+    )
+  `);
+
   console.log('[DB] Database tables initialized successfully.');
 }
 
@@ -604,6 +615,35 @@ async function requireAdmin(req, res, next) {
     res.status(500).json({ error: 'Internal server error.' });
   }
 }
+
+// Analytics Endpoints
+app.post('/api/analytics/visit', async (req, res) => {
+  const { visitor_id } = req.body;
+  if (!visitor_id) return res.status(400).json({ error: 'Missing visitor_id' });
+  
+  try {
+    const existing = await db.get(`SELECT visitor_id FROM unique_visitors WHERE visitor_id = ?`, [visitor_id]);
+    if (existing) {
+      await db.run(`UPDATE unique_visitors SET last_visit = CURRENT_TIMESTAMP, visit_count = visit_count + 1 WHERE visitor_id = ?`, [visitor_id]);
+    } else {
+      await db.run(`INSERT INTO unique_visitors (visitor_id) VALUES (?)`, [visitor_id]);
+    }
+    res.json({ status: 'success' });
+  } catch (err) {
+    console.error('[DB] Error logging visit:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/stats/visitors', requireAdmin, async (req, res) => {
+  try {
+    const row = await db.get(`SELECT COUNT(*) as count FROM unique_visitors`);
+    res.json({ uniqueVisitors: row.count || 0 });
+  } catch (err) {
+    console.error('[DB] Error fetching visitors:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Admin: List Users Route
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
