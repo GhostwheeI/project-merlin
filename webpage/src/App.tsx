@@ -48,7 +48,7 @@ function Header() {
                 Pre-alpha
               </a>
             </div>
-            <span className="text-[9px] pl-0.5 mt-1 leading-none font-normal tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.33)' }}>Built on the Merlin Framework</span>
+            <span className="text-[9px] pl-0.5 mt-1 leading-none font-normal tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.33)' }}>Framework built in Merlin Laboratories</span>
           </div>
         </div>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
@@ -788,7 +788,7 @@ function About() {
         <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
           Ghostwheel
         </h1>
-        <p className="text-sm font-medium text-spectrum-4 mt-1">Built on the Merlin Framework</p>
+        <p className="text-sm font-medium text-spectrum-4 mt-1">Framework built in Merlin Laboratories</p>
 
         <p className="mx-auto mt-8 max-w-xl text-balance text-base text-muted-foreground leading-relaxed">
           Ghostwheel is being built to bring local AI agent power directly to Windows hardware —{' '}
