@@ -52,7 +52,7 @@ function Header() {
                 Pre-alpha
               </a>
             </div>
-            <span className="text-[9px] pl-0.5 mt-1 leading-none font-normal tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.33)' }}>Framework built in Merlin Laboratories</span>
+            <span className="text-[9px] pl-0.5 mt-1 leading-none font-normal tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.33)' }}>Built in Merlin Laboratories</span>
           </div>
         </div>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
