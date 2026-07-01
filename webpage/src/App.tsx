@@ -458,9 +458,12 @@ function Pricing() {
               
               {plan.planned ? (
                 <div className="mt-auto pt-7 flex flex-col gap-2">
-                  <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/40 bg-surface/30 px-4 py-3.5 text-sm font-semibold text-muted-foreground/50 cursor-not-allowed">
+                  <a 
+                    href="#backer" 
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-surface hover:bg-secondary px-4 py-3.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     {plan.cta}
-                  </div>
+                  </a>
                   <span className="text-[10px] text-center text-muted-foreground/40 font-medium">Coming in a future update</span>
                 </div>
               ) : (
@@ -829,6 +832,31 @@ function Credits() {
           </p>
         </div>
 
+        {/* Rydell Profile Card */}
+        <div className="mt-12 surface-card p-8 border border-border bg-surface relative overflow-hidden flex flex-col sm:flex-row items-center gap-6">
+          <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-spectrum opacity-20 blur-2xl"></div>
+          <div className="h-28 w-28 rounded-full border border-border/80 bg-surface overflow-hidden shrink-0 relative">
+            <div className="absolute inset-0 animate-pulse-glow rounded-full bg-spectrum blur-lg opacity-30"></div>
+            <img 
+              src="/me_upscaled.png" 
+              alt="Rydell" 
+              className="relative h-full w-full object-cover"
+            />
+          </div>
+          <div className="space-y-3 text-center sm:text-left">
+            <div>
+              <h2 className="font-display text-2xl font-bold tracking-tight">Rydell</h2>
+              <p className="font-mono text-xs uppercase tracking-wider text-spectrum">// Founder</p>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Building next-generation client-first intelligence at Merlin Laboratories to return compute power and agency to where they belong—on your local machine. Bridging the gap between heavy enterprise hardware and lightweight local sandboxes, one compilation at a time.
+            </p>
+            <p className="text-xs text-muted-foreground/80 italic">
+              Fuel the late-night compilations and coffee runs by <a href="#backer" className="text-foreground underline hover:text-primary transition-colors font-medium">backing the project</a>.
+            </p>
+          </div>
+        </div>
+
         <div className="mt-16 grid gap-8 sm:grid-cols-2">
           {/* Technologies Used */}
           <div className="surface-card p-8 border border-border bg-surface">
@@ -870,12 +898,12 @@ function Credits() {
             </h2>
             <ul className="space-y-6 text-sm text-muted-foreground">
               <li>
-                <strong className="text-foreground block">Lovable.dev</strong>
-                Created the starter site concept, visual scaffold, and layout styling.
+                <strong className="text-foreground block">Lucide Icons</strong>
+                Open-source vector iconography selected for sleek UI alignment.
               </li>
               <li>
-                <strong className="text-foreground block">Antigravity (Google DeepMind)</strong>
-                Reconstructed clean bundle code, aligned content with the v4.4 implementation plan, added dynamic routing, and packaged offline assets.
+                <strong className="text-foreground block">Google Fonts</strong>
+                Inter and Outfit typography supporting our fluid, display-oriented interface.
               </li>
             </ul>
           </div>
