@@ -849,7 +849,7 @@ function Credits() {
               <p className="font-mono text-xs uppercase tracking-wider text-spectrum">// Founder</p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Building next-generation client-first intelligence at Merlin Laboratories to return compute power and agency to where they belong—on your local machine. Bridging the gap between heavy enterprise hardware and lightweight local sandboxes, one compilation at a time.
+              I started Merlin Laboratories to help developers run advanced AI agents entirely on local Windows hardware. By focusing on raw native performance and offline privacy, we make local inference fast and simple.
             </p>
             <p className="text-xs text-muted-foreground/80 italic">
               Fuel the late-night compilations and coffee runs by <a href="#backer" className="text-foreground underline hover:text-primary transition-colors font-medium">backing the project</a>.
