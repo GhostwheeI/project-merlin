@@ -17,6 +17,10 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000'
+  : 'https://api.merlin-labs.io';
+
 function Header() {
   const [user, setUser] = useState<string | null>(() => localStorage.getItem('ghostwheel_current_user'));
 
@@ -562,29 +566,28 @@ function DownloadSection() {
 
     setStatus('submitting');
 
-    // Simulate API call to the waitlist workflow backend
-    setTimeout(() => {
-      const accounts = getMockAccounts();
-      const matchEmail = trimmedEmail.toLowerCase();
-      const matched = accounts.find((a: any) => a.email.toLowerCase() === matchEmail);
-
-      if (matched) {
-        setStatus('already_registered');
-        return;
+    try {
+      const response = await fetch(`${API_BASE}/api/waitlist/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Server error');
       }
 
-      const mockToken = Math.random().toString(36).substring(2, 15);
-      const verificationLink = `http://${window.location.host}/#verify?email=${encodeURIComponent(trimmedEmail)}&token=${mockToken}`;
-      
-      // Log mock email dispatch to developer console
-      console.log("%c[Waitlist Backend Mock] Triggering verification workflow...", "color: #a855f7; font-weight: bold; font-size: 11px;");
-      console.log("To:", trimmedEmail);
-      console.log("Subject: Verify your Ghostwheel waitlist spot");
-      console.log("Verification Link:", verificationLink);
-      console.log("Email Template Compiled: /templates/waitlist-verification-email.html");
-
-      setStatus('success');
-    }, 1200);
+      const data = await response.json();
+      if (data.status === 'already_registered') {
+        setStatus('already_registered');
+      } else {
+        setStatus('success');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setStatus('idle');
+    }
   };
 
   return (
@@ -896,14 +899,17 @@ function Contact() {
     const formData = new FormData(e.currentTarget);
     
     try {
-      // NOTE: Create a public support form provider endpoint and replace the placeholder ID below.
-      // Formspree keeps your email hidden from site inspectors and client requests.
-      const response = await fetch('https://formspree.io/f/your_form_id_here', {
+      const payload = {
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        category: 'other',
+        message: formData.get('message') as string
+      };
+
+      const response = await fetch(`${API_BASE}/api/support`, {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) {
@@ -1025,13 +1031,22 @@ function Support() {
     const formData = new FormData(e.currentTarget);
     
     try {
-      // NOTE: Create a Formspree Form ID and insert it here to route support tickets.
-      const response = await fetch('https://formspree.io/f/your_support_form_id_here', {
+      const payload = {
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        license_key: formData.get('license_key') as string,
+        category: formData.get('category') as string,
+        os_version: formData.get('os_version') as string,
+        gpu_backend: formData.get('gpu_backend') as string,
+        system_memory: formData.get('system_ram') as string,
+        message: formData.get('description') as string,
+        logs: formData.get('logs') as string
+      };
+
+      const response = await fetch(`${API_BASE}/api/support`, {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) {
@@ -1236,47 +1251,30 @@ function Support() {
   );
 }
 
-const ACCOUNTS_KEY = 'ghostwheel_mock_accounts';
 
-const getMockAccounts = () => {
-  const data = localStorage.getItem(ACCOUNTS_KEY);
-  if (!data) {
-    const defaults: { email: string; password: string }[] = [];
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(defaults));
-    return defaults;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-};
-
-const addMockAccount = (email: string, pass: string) => {
-  const accounts = getMockAccounts();
-  const trimmedEmail = email.trim().toLowerCase();
-  const filtered = accounts.filter((a: any) => a.email.toLowerCase() !== trimmedEmail);
-  filtered.push({ email: trimmedEmail, password: pass });
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(filtered));
-};
 
 function Verify() {
   const [email, setEmail] = useState('');
+  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [status, setStatus] = useState<'form' | 'submitting' | 'completed'>('form');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Parse email parameter from hash: #verify?email=ghostwheel%40merlin-labs.io&token=...
+    // Parse email and token parameters from hash: #verify?email=ghostwheel%40merlin-labs.io&token=...
     const hash = window.location.hash;
-    const match = hash.match(/[?&]email=([^&]*)/);
-    if (match) {
-      setEmail(decodeURIComponent(match[1]));
+    const emailMatch = hash.match(/[?&]email=([^&]*)/);
+    if (emailMatch) {
+      setEmail(decodeURIComponent(emailMatch[1]));
+    }
+    const tokenMatch = hash.match(/[?&]token=([^&]*)/);
+    if (tokenMatch) {
+      setToken(decodeURIComponent(tokenMatch[1]));
     }
   }, []);
 
-  const handlePasswordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
@@ -1291,19 +1289,23 @@ function Verify() {
 
     setStatus('submitting');
 
-    // Simulate API call to the registration/verification backend
-    setTimeout(() => {
-      // Save new account to mock DB
-      addMockAccount(email, password);
+    try {
+      const response = await fetch(`${API_BASE}/api/waitlist/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token, password })
+      });
 
-      // Log mock account creation to developer console
-      console.log("%c[Waitlist Backend Mock] Confirming account verification...", "color: #10b981; font-weight: bold; font-size: 11px;");
-      console.log("Email:", email);
-      console.log("Status: VERIFIED & PASSWORD SECURED");
-      console.log("Password stored in local mock database");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Verification failed');
+      }
 
       setStatus('completed');
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setStatus('form');
+    }
   };
 
   return (
@@ -1602,7 +1604,7 @@ function SignIn() {
   const [status, setStatus] = useState<'form' | 'submitting' | 'completed'>('form');
   const [error, setError] = useState('');
 
-  const handleSignInSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignInSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
@@ -1614,35 +1616,27 @@ function SignIn() {
 
     setStatus('submitting');
 
-    // Simulate API call to the authentication backend
-    setTimeout(() => {
-      const accounts = getMockAccounts();
-      const matchEmail = trimmedEmail.toLowerCase();
-      const matched = accounts.find((a: any) => a.email.toLowerCase() === matchEmail);
+    try {
+      const response = await fetch(`${API_BASE}/api/waitlist/signin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail, password })
+      });
 
-      if (!matched) {
-        setError('Account not found. Please join the waitlist first.');
-        setStatus('form');
-        return;
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Sign in failed');
       }
-
-      if (matched.password !== password) {
-        setError('Incorrect password. Please try again.');
-        setStatus('form');
-        return;
-      }
-
-      // Log mock authentication to developer console
-      console.log("%c[Auth Backend Mock] Authenticating user...", "color: #3b82f6; font-weight: bold; font-size: 11px;");
-      console.log("Email:", trimmedEmail);
-      console.log("Status: AUTHENTICATION_SUCCESS");
 
       // Save user session and dispatch state update event
       localStorage.setItem('ghostwheel_current_user', trimmedEmail);
       window.dispatchEvent(new Event('auth-change'));
 
       setStatus('completed');
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setStatus('form');
+    }
   };
 
   return (
@@ -1768,29 +1762,28 @@ function SignUp() {
       return;
     }
 
-    setStatus('submitting');
+    try {
+      const response = await fetch(`${API_BASE}/api/waitlist/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail })
+      });
 
-    setTimeout(() => {
-      const accounts = getMockAccounts();
-      const matchEmail = trimmedEmail.toLowerCase();
-      const matched = accounts.find((a: any) => a.email.toLowerCase() === matchEmail);
-
-      if (matched) {
-        setStatus('already_registered');
-        return;
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Server error');
       }
 
-      const mockToken = Math.random().toString(36).substring(2, 15);
-      const verificationLink = `http://${window.location.host}/#verify?email=${encodeURIComponent(trimmedEmail)}&token=${mockToken}`;
-      
-      console.log("%c[Waitlist Backend Mock] Triggering verification workflow...", "color: #a855f7; font-weight: bold; font-size: 11px;");
-      console.log("To:", trimmedEmail);
-      console.log("Subject: Verify your Ghostwheel waitlist spot");
-      console.log("Verification Link:", verificationLink);
-      console.log("Email Template Compiled: /templates/waitlist-verification-email.html");
-
-      setStatus('success');
-    }, 1200);
+      const data = await response.json();
+      if (data.status === 'already_registered') {
+        setStatus('already_registered');
+      } else {
+        setStatus('success');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setStatus('form');
+    }
   };
 
   return (

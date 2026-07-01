@@ -1,0 +1,7 @@
+# Ignore backend dependencies and logs
+backend/node_modules/
+backend/.env
+backend/*.db
+backend/*.log
+backend/scratch/
+webpage/scratch/
